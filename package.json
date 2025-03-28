@@ -1,0 +1,13 @@
+{
+  "name": "webm-converter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "bin": {
+    "webm-converter": "./index.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "fluent-ffmpeg": "^2.1.3"
+  }
+}
