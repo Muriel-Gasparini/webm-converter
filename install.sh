@@ -155,7 +155,7 @@ if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
         chmod +x install-service.sh
         
         # Detectar usuário atual de forma robusta
-        if [ -n "$SUDO_USER" ]; then
+        if [ -n "${SUDO_USER:-}" ]; then
             TARGET_USER="$SUDO_USER"
         else
             TARGET_USER="$(whoami)"
