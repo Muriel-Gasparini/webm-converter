@@ -154,12 +154,25 @@ if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
         cd "$SERVICE_DIR" || exit 1
         chmod +x install-service.sh
         
-        # Atualizar caminhos no serviço
-        sed -i "s|ExecStart=.*|ExecStart=$BIN_DIR/webm-converter|g" webm-converter.service
-        sed -i "s|WorkingDirectory=.*|WorkingDirectory=$HOME|g" webm-converter.service
+        # Gerar arquivo de serviço personalizado
+        TARGET_USER="$USER"
+        TARGET_GROUP="$(id -gn)"
+        HOME_DIR="$HOME"
+        WORKING_DIR="$HOME"
+        EXEC_PATH="$BIN_DIR/webm-converter"
+        WATCH_DIR="$HOME/Videos/Screencasts"
+        
+        # Substituir placeholders no arquivo de serviço
+        sed -e "s|{{USER}}|$TARGET_USER|g" \
+            -e "s|{{GROUP}}|$TARGET_GROUP|g" \
+            -e "s|{{HOME_DIR}}|$HOME_DIR|g" \
+            -e "s|{{WORKING_DIR}}|$WORKING_DIR|g" \
+            -e "s|{{EXEC_PATH}}|$EXEC_PATH|g" \
+            -e "s|{{WATCH_DIR}}|$WATCH_DIR|g" \
+            webm-converter.service > webm-converter-configured.service
         
         print_status "🔧 Instalando serviço systemd..."
-        if sudo cp webm-converter.service /etc/systemd/system/ && \
+        if sudo cp webm-converter-configured.service /etc/systemd/system/webm-converter.service && \
            sudo systemctl daemon-reload && \
            sudo systemctl enable webm-converter && \
            sudo systemctl start webm-converter; then
