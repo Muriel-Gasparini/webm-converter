@@ -123,7 +123,7 @@ fi
 
 # Instalar serviço systemd
 read -p "Deseja instalar como serviço systemd? (y/N): " -n 1 -r
-echo
+
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     print_status "🔧 Instalando serviço systemd..."
     
