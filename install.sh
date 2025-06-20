@@ -154,13 +154,19 @@ if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
         cd "$SERVICE_DIR" || exit 1
         chmod +x install-service.sh
         
-        # Gerar arquivo de serviço personalizado
-        TARGET_USER="$USER"
-        TARGET_GROUP="$(id -gn)"
-        HOME_DIR="$HOME"
-        WORKING_DIR="$HOME"
+        # Detectar usuário atual de forma robusta
+        if [ -n "$SUDO_USER" ]; then
+            TARGET_USER="$SUDO_USER"
+        else
+            TARGET_USER="$(whoami)"
+        fi
+        TARGET_GROUP="$(id -gn $TARGET_USER)"
+        HOME_DIR="$(eval echo ~$TARGET_USER)"
+        WORKING_DIR="$HOME_DIR"
         EXEC_PATH="$BIN_DIR/webm-converter"
-        WATCH_DIR="$HOME/Videos/Screencasts"
+        WATCH_DIR="$HOME_DIR/Videos/Screencasts"
+        
+        print_status "Configurando serviço para usuário: $TARGET_USER"
         
         # Substituir placeholders no arquivo de serviço
         sed -e "s|{{USER}}|$TARGET_USER|g" \
@@ -171,14 +177,21 @@ if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
             -e "s|{{WATCH_DIR}}|$WATCH_DIR|g" \
             webm-converter.service > webm-converter-configured.service
         
-        print_status "🔧 Instalando serviço systemd..."
-        if sudo cp webm-converter-configured.service /etc/systemd/system/webm-converter.service && \
-           sudo systemctl daemon-reload && \
-           sudo systemctl enable webm-converter && \
-           sudo systemctl start webm-converter; then
-            print_success "Serviço instalado e iniciado!"
+        # Verificar se todos os placeholders foram substituídos
+        if grep -q "{{" webm-converter-configured.service; then
+            print_error "Erro: Alguns placeholders não foram substituídos no arquivo de serviço"
+            cat webm-converter-configured.service | grep "{{"
+            print_warning "Falha ao configurar serviço. Continue com a instalação manual."
         else
-            print_warning "Falha ao instalar serviço. Continue com a instalação manual."
+            print_status "🔧 Instalando serviço systemd..."
+            if sudo cp webm-converter-configured.service /etc/systemd/system/webm-converter.service && \
+               sudo systemctl daemon-reload && \
+               sudo systemctl enable webm-converter && \
+               sudo systemctl start webm-converter; then
+                print_success "Serviço instalado e iniciado!"
+            else
+                print_warning "Falha ao instalar serviço. Continue com a instalação manual."
+            fi
         fi
     else
         print_warning "Falha ao baixar arquivos do serviço."
