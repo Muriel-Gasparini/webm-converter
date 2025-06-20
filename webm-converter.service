@@ -1,0 +1,31 @@
+[Unit]
+Description=WebM to MP4 Converter Service
+Documentation=https://github.com/Muriel-Gasparini/webm-converter
+After=network.target
+
+[Service]
+Type=simple
+User={{USER}}
+Group={{GROUP}}
+WorkingDirectory={{WORKING_DIR}}
+ExecStart={{EXEC_PATH}}
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=webm-converter
+
+# Environment variables (if needed)
+Environment=NODE_ENV=production
+Environment=HOME={{HOME_DIR}}
+Environment=WEBM_WATCH_DIR={{WATCH_DIR}}
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths={{WATCH_DIR}}
+
+[Install]
+WantedBy=multi-user.target 
