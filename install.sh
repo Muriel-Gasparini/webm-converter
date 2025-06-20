@@ -173,12 +173,28 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Instalar serviço systemd
-echo ""
-read -p "Deseja instalar como serviço systemd? (y/N): " -n 1 -r
-echo ""
+# Verificar se está executando via pipe (stdin não é um terminal)
+if [ -t 0 ]; then
+    # Terminal interativo
+    INTERACTIVE=true
+else
+    # Executando via pipe (curl | bash)
+    INTERACTIVE=false
+fi
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+# Instalar serviço systemd
+if [ "$INTERACTIVE" = true ]; then
+    echo ""
+    read -p "Deseja instalar como serviço systemd? (y/N): " -n 1 -r
+    echo ""
+    INSTALL_SERVICE="$REPLY"
+else
+    # Modo não-interativo: instalar serviço por padrão
+    print_status "Modo não-interativo detectado. Instalando serviço systemd..."
+    INSTALL_SERVICE="y"
+fi
+
+if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
     if [ -f "install-service.sh" ]; then
         print_status "🔧 Instalando serviço systemd..."
         
@@ -197,10 +213,18 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # Limpeza opcional
-echo ""
-read -p "Deseja manter os arquivos de desenvolvimento? (y/N): " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+if [ "$INTERACTIVE" = true ]; then
+    echo ""
+    read -p "Deseja manter os arquivos de desenvolvimento? (y/N): " -n 1 -r
+    echo ""
+    CLEANUP="$REPLY"
+else
+    # Modo não-interativo: fazer limpeza por padrão
+    print_status "Limpando arquivos desnecessários..."
+    CLEANUP="n"
+fi
+
+if [[ ! $CLEANUP =~ ^[Yy]$ ]]; then
     print_status "🧹 Limpando arquivos desnecessários..."
     cd "$INSTALL_DIR"
     rm -rf node_modules .git yarn.lock
