@@ -9,7 +9,7 @@ export LC_ALL=C.UTF-8 2>/dev/null || export LC_ALL=C 2>/dev/null || true
 
 REPO_URL="https://github.com/Muriel-Gasparini/webm-converter"
 RELEASE_VERSION="v1.0.0"
-BINARY_URL="$REPO_URL/releases/download/$RELEASE_VERSION/webm-converter-linux"
+BINARY_URL="$REPO_URL/releases/download/$RELEASE_VERSION/webm-converter"
 SERVICE_URL="$REPO_URL/raw/$RELEASE_VERSION/webm-converter.service"
 INSTALL_SERVICE_URL="$REPO_URL/raw/$RELEASE_VERSION/install-service.sh"
 
