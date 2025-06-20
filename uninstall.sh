@@ -7,6 +7,7 @@ set -e
 
 INSTALL_DIR="$HOME/.local/webm-converter"
 BIN_DIR="$HOME/.local/bin"
+SHARE_DIR="$HOME/.local/share/webm-converter"
 
 # Cores para output
 RED='\033[0;31m'
@@ -61,6 +62,12 @@ fi
 if [ -d "$INSTALL_DIR" ]; then
     print_status "🗑️  Removendo arquivos de instalação..."
     rm -rf "$INSTALL_DIR"
+fi
+
+# Remover diretório compartilhado (ícone)
+if [ -d "$SHARE_DIR" ]; then
+    print_status "🖼️ Removendo ícone e arquivos compartilhados..."
+    rm -rf "$SHARE_DIR"
 fi
 
 # Limpar ffmpeg temporário

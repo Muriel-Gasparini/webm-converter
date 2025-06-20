@@ -2,6 +2,31 @@
 const fs = require("fs");
 const path = require("path");
 const { exec, spawn } = require("child_process");
+const notifier = require("node-notifier");
+
+// Função para encontrar o ícone
+function getIconPath() {
+  // Quando executado como build (pkg), __dirname aponta para um diretório temporário
+  // Vamos procurar o ícone em locais possíveis
+  const possiblePaths = [
+    path.resolve(__dirname, "icon.png"), // Desenvolvimento
+    path.resolve(process.cwd(), "icon.png"), // Diretório atual
+    path.resolve(path.dirname(process.execPath), "icon.png"), // Junto com o executável
+    "/usr/local/share/webm-converter/icon.png", // Instalação global
+    path.resolve(process.env.HOME, ".local/share/webm-converter/icon.png"), // Instalação local
+  ];
+
+  for (const iconPath of possiblePaths) {
+    if (fs.existsSync(iconPath)) {
+      return iconPath;
+    }
+  }
+
+  // Se não encontrar, retorna undefined (notificação sem ícone)
+  return undefined;
+}
+
+const iconPath = getIconPath();
 
 const watchFolder =
   process.env.WEBM_WATCH_DIR || `${process.env.HOME}/Videos/Screencasts`;
@@ -10,6 +35,11 @@ const finalWait = 5000; // Aguarda 5s extras antes da conversão
 const pendingFiles = new Map();
 
 console.log(`📂 Monitorando a pasta: ${watchFolder}...`);
+if (iconPath) {
+  console.log(`🖼️ Ícone encontrado em: ${iconPath}`);
+} else {
+  console.log(`⚠️ Ícone não encontrado - notificações sem ícone`);
+}
 
 // Verificar se o ffmpeg está instalado
 function checkFfmpeg() {
@@ -34,6 +64,7 @@ function checkFfmpeg() {
 checkFfmpeg()
   .then(() => {
     console.log(`🔧 FFmpeg verificado e funcionando`);
+
     startWatching();
   })
   .catch(() => {
@@ -61,6 +92,7 @@ function startWatching() {
     console.log(
       `📌 Arquivo detectado: ${filename}, aguardando o fim da gravação...`
     );
+
     pendingFiles.set(inputPath, { lastSize: 0 });
 
     const checkFile = () => {
@@ -77,6 +109,15 @@ function startWatching() {
             console.log(
               `✅ Gravação finalizada: ${filename}, aguardando segurança...`
             );
+
+            notifier.notify({
+              title: "WebM Converter",
+              message: "Iniciando conversão...",
+              icon: iconPath,
+              sound: false,
+              wait: false,
+            });
+
             setTimeout(() => convertFile(inputPath, outputPath), finalWait);
           }
         });
@@ -160,10 +201,28 @@ function convertFile(inputPath, outputPath) {
   ffmpeg.on("close", (code) => {
     if (code === 0) {
       console.log(`✅ Conversão concluída: ${outputPath}`);
+
+      // Notificação de conversão bem-sucedida
+      notifier.notify({
+        title: "WebM Converter",
+        message: "Conversão concluída com sucesso!",
+        icon: iconPath,
+        sound: true,
+        wait: false,
+      });
     } else {
       console.error(
         `❌ Erro na conversão de ${path.basename(inputPath)} (código: ${code})`
       );
+
+      // Notificação de erro na conversão
+      notifier.notify({
+        title: "WebM Converter",
+        message: "Falha na conversão!",
+        icon: iconPath,
+        sound: true,
+        wait: false,
+      });
     }
     pendingFiles.delete(inputPath);
   });
@@ -173,6 +232,16 @@ function convertFile(inputPath, outputPath) {
       `❌ Erro ao executar ffmpeg para ${path.basename(inputPath)}:`,
       err.message
     );
+
+    // Notificação de erro de execução
+    notifier.notify({
+      title: "WebM Converter",
+      message: "Erro fatal na conversão!",
+      icon: iconPath,
+      sound: true,
+      wait: false,
+    });
+
     pendingFiles.delete(inputPath);
   });
 }

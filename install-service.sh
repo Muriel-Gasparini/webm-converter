@@ -48,6 +48,12 @@ if [ ! -f "dist/webm-converter-linux" ]; then
     exit 1
 fi
 
+# Verificar se o ícone existe
+if [ ! -f "dist/icon.png" ]; then
+    echo "⚠️ Ícone não encontrado em dist/icon.png"
+    echo "Execute 'yarn build:linux' primeiro para incluir o ícone"
+fi
+
 # Verificar se o arquivo de serviço existe
 if [ ! -f "$SERVICE_FILE" ]; then
     echo "❌ Arquivo de serviço não encontrado: $SERVICE_FILE"
@@ -61,6 +67,15 @@ if [ ! -d "$WATCH_DIR" ]; then
     echo "✅ Pasta criada: $WATCH_DIR"
 else
     echo "✅ Pasta já existe: $WATCH_DIR"
+fi
+
+# Copiar ícone para local compartilhado se existir
+SHARE_DIR="$HOME_DIR/.local/share/webm-converter"
+if [ -f "dist/icon.png" ]; then
+    echo "🖼️ Copiando ícone para $SHARE_DIR..."
+    sudo -u "$TARGET_USER" mkdir -p "$SHARE_DIR"
+    sudo -u "$TARGET_USER" cp "dist/icon.png" "$SHARE_DIR/"
+    echo "✅ Ícone copiado para $SHARE_DIR/icon.png"
 fi
 
 # Parar o serviço se estiver rodando

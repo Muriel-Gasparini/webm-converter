@@ -7,8 +7,7 @@
     "webm-converter": "./index.js"
   },
   "scripts": {
-    "build": "pkg . --output dist/webm-converter",
-    "build:linux": "pkg . --targets node18-linux-x64 --output dist/webm-converter-linux"
+    "build": "pkg . --targets node18-linux-x64 --output dist/webm-converter && cp icon.png dist/"
   },
   "pkg": {
     "targets": [
@@ -16,7 +15,9 @@
     ]
   },
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "node-notifier": "^10.0.1"
+  },
   "devDependencies": {
     "pkg": "^5.8.1"
   }

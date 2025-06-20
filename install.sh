@@ -10,10 +10,12 @@ export LC_ALL=C.UTF-8 2>/dev/null || export LC_ALL=C 2>/dev/null || true
 REPO_URL="https://github.com/Muriel-Gasparini/webm-converter"
 RELEASE_VERSION="v1.0.0"
 BINARY_URL="$REPO_URL/releases/download/$RELEASE_VERSION/webm-converter"
+ICON_URL="$REPO_URL/raw/$RELEASE_VERSION/icon.png"
 SERVICE_URL="$REPO_URL/raw/$RELEASE_VERSION/webm-converter.service"
 INSTALL_SERVICE_URL="$REPO_URL/raw/$RELEASE_VERSION/install-service.sh"
 
 BIN_DIR="$HOME/.local/bin"
+SHARE_DIR="$HOME/.local/share/webm-converter"
 SERVICE_DIR="/tmp/webm-converter-install"
 
 # Cores para output
@@ -74,6 +76,7 @@ fi
 # Criar diretórios
 print_status "📁 Criando diretórios..."
 mkdir -p "$BIN_DIR"
+mkdir -p "$SHARE_DIR"
 mkdir -p "$HOME/Videos/Screencasts"
 mkdir -p "$SERVICE_DIR"
 
@@ -95,6 +98,12 @@ if ! download_file "$BINARY_URL" "$BIN_DIR/webm-converter"; then
     print_error "Falha ao baixar o executável!"
     print_error "Verifique se a release $RELEASE_VERSION existe em: $REPO_URL/releases"
     exit 1
+fi
+
+# Baixar ícone
+print_status "🖼️ Baixando ícone..."
+if ! download_file "$ICON_URL" "$SHARE_DIR/icon.png"; then
+    print_warning "Falha ao baixar o ícone. Notificações serão sem ícone."
 fi
 
 # Tornar executável
