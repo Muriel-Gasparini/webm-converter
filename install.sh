@@ -51,10 +51,26 @@ if ! command -v node &> /dev/null; then
     exit 1
 fi
 
+# Verificar versão do Node.js
+NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
+if [ "$NODE_VERSION" -lt 16 ]; then
+    print_error "Node.js versão $NODE_VERSION encontrada. Necessária versão 16 ou superior."
+    exit 1
+fi
+
+# Verificar npm
+if ! command -v npm &> /dev/null; then
+    print_error "npm não encontrado! Instale Node.js com npm."
+    exit 1
+fi
+
 # Verificar Yarn
 if ! command -v yarn &> /dev/null; then
     print_status "📦 Instalando Yarn..."
-    npm install -g yarn
+    if ! npm install -g yarn; then
+        print_error "Falha ao instalar Yarn. Tente executar com sudo se necessário."
+        exit 1
+    fi
 fi
 
 # Verificar Git
@@ -70,31 +86,64 @@ mkdir -p "$INSTALL_DIR"
 mkdir -p "$BIN_DIR"
 mkdir -p "$HOME/Videos/Screencasts"
 
+# Remover instalação anterior se existir
+if [ -d "$INSTALL_DIR" ] && [ "$(ls -A "$INSTALL_DIR")" ]; then
+    print_status "🧹 Removendo instalação anterior..."
+    rm -rf "$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
+fi
+
 # Clonar repositório
 print_status "📥 Baixando WebM Converter..."
-if [ -d "$INSTALL_DIR/.git" ]; then
-    print_status "Atualizando repositório existente..."
-    cd "$INSTALL_DIR"
-    git pull
-else
-    print_status "Clonando repositório..."
-    git clone "$REPO_URL" "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
+if ! git clone "$REPO_URL" "$INSTALL_DIR"; then
+    print_error "Falha ao clonar repositório!"
+    exit 1
 fi
+
+cd "$INSTALL_DIR" || {
+    print_error "Falha ao acessar diretório de instalação!"
+    exit 1
+}
 
 # Instalar dependências
 print_status "📦 Instalando dependências..."
-yarn install
+if ! yarn install; then
+    print_error "Falha ao instalar dependências!"
+    exit 1
+fi
+
+# Verificar se pkg está disponível globalmente, senão instalar
+if ! command -v pkg &> /dev/null; then
+    print_status "📦 Instalando pkg globalmente..."
+    if ! npm install -g pkg; then
+        print_error "Falha ao instalar pkg. Tente executar com sudo se necessário."
+        exit 1
+    fi
+fi
 
 # Copiar ffmpeg para pasta bin local
 print_status "📦 Copiando ffmpeg..."
 mkdir -p bin
-cp node_modules/@ffmpeg-installer/linux-x64/ffmpeg bin/ffmpeg
-chmod +x bin/ffmpeg
+if [ -f "node_modules/@ffmpeg-installer/linux-x64/ffmpeg" ]; then
+    cp node_modules/@ffmpeg-installer/linux-x64/ffmpeg bin/ffmpeg
+    chmod +x bin/ffmpeg
+else
+    print_error "FFmpeg não encontrado em node_modules!"
+    exit 1
+fi
 
 # Gerar build
 print_status "🔨 Compilando executável..."
-yarn build:linux
+if ! yarn build:linux; then
+    print_error "Falha ao compilar executável!"
+    exit 1
+fi
+
+# Verificar se o executável foi gerado
+if [ ! -f "dist/webm-converter-linux" ]; then
+    print_error "Executável não foi gerado!"
+    exit 1
+fi
 
 # Copiar executável para bin
 print_status "📋 Instalando executável..."
@@ -114,36 +163,49 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
         SHELL_RC="$HOME/.profile"
     fi
     
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
-    export PATH="$HOME/.local/bin:$PATH"
+    # Verificar se a linha já existe no arquivo
+    if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
+        print_success "PATH atualizado em $SHELL_RC"
+        print_warning "Reinicie o terminal ou execute: source $SHELL_RC"
+    fi
     
-    print_success "PATH atualizado em $SHELL_RC"
-    print_warning "Reinicie o terminal ou execute: source $SHELL_RC"
+    export PATH="$HOME/.local/bin:$PATH"
 fi
 
 # Instalar serviço systemd
+echo ""
 read -p "Deseja instalar como serviço systemd? (y/N): " -n 1 -r
+echo ""
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    print_status "🔧 Instalando serviço systemd..."
-    
-    # Atualizar caminhos no script de instalação do serviço
-    sed -i "s|WORKING_DIR=\"\$CURRENT_DIR\"|WORKING_DIR=\"$INSTALL_DIR\"|g" install-service.sh
-    sed -i "s|EXEC_PATH=\"\$CURRENT_DIR/dist/webm-converter-linux\"|EXEC_PATH=\"$BIN_DIR/webm-converter\"|g" install-service.sh
-    
-    sudo ./install-service.sh
-    print_success "Serviço instalado e iniciado!"
+    if [ -f "install-service.sh" ]; then
+        print_status "🔧 Instalando serviço systemd..."
+        
+        # Atualizar caminhos no script de instalação do serviço
+        sed -i "s|WORKING_DIR=\"\$CURRENT_DIR\"|WORKING_DIR=\"$INSTALL_DIR\"|g" install-service.sh
+        sed -i "s|EXEC_PATH=\"\$CURRENT_DIR/dist/webm-converter-linux\"|EXEC_PATH=\"$BIN_DIR/webm-converter\"|g" install-service.sh
+        
+        if sudo ./install-service.sh; then
+            print_success "Serviço instalado e iniciado!"
+        else
+            print_warning "Falha ao instalar serviço. Continue com a instalação manual."
+        fi
+    else
+        print_warning "Script de instalação do serviço não encontrado."
+    fi
 fi
 
 # Limpeza opcional
+echo ""
 read -p "Deseja manter os arquivos de desenvolvimento? (y/N): " -n 1 -r
-echo
+echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     print_status "🧹 Limpando arquivos desnecessários..."
     cd "$INSTALL_DIR"
     rm -rf node_modules .git yarn.lock
-    find . -name "*.js" -not -path "./dist/*" -not -path "./bin/*" -delete
-    find . -name "*.json" -not -path "./dist/*" -not -path "./bin/*" -delete
+    find . -name "*.js" -not -path "./dist/*" -not -path "./bin/*" -delete 2>/dev/null || true
+    find . -name "*.json" -not -path "./dist/*" -not -path "./bin/*" -delete 2>/dev/null || true
     print_success "Limpeza concluída!"
 fi
 
