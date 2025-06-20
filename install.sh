@@ -10,7 +10,6 @@ export LC_ALL=C.UTF-8 2>/dev/null || export LC_ALL=C 2>/dev/null || true
 REPO_URL="https://github.com/Muriel-Gasparini/webm-converter"
 RELEASE_VERSION="v1.0.0"
 BINARY_URL="$REPO_URL/releases/download/$RELEASE_VERSION/webm-converter"
-echo 'Baixando binário de: ' $BINARY_URL
 SERVICE_URL="$REPO_URL/raw/$RELEASE_VERSION/webm-converter.service"
 INSTALL_SERVICE_URL="$REPO_URL/raw/$RELEASE_VERSION/install-service.sh"
 
@@ -179,12 +178,6 @@ rm -rf "$SERVICE_DIR"
 # Verificação final
 if [ -x "$BIN_DIR/webm-converter" ]; then
     print_success "✅ Instalação concluída com sucesso!"
-    
-    # Testar se o executável funciona
-    print_status "🧪 Testando executável..."
-    if "$BIN_DIR/webm-converter" --version 2>/dev/null || true; then
-        print_success "Executável funcionando corretamente!"
-    fi
 else
     print_error "❌ Erro na instalação: executável não encontrado"
     exit 1
