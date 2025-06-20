@@ -5,7 +5,7 @@ Conversor automático de arquivos .webm para .mp4 especialmente otimizado para g
 ## 🚀 Instalação com UM comando
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/webm-converter/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/main/install.sh | bash
 ```
 
 **Isso é tudo!** ✨ O script vai:
@@ -74,7 +74,7 @@ webm-converter
 ## 🗑️ Desinstalação
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/webm-converter/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/main/uninstall.sh | bash
 ```
 
 ## 🔧 Para Desenvolvedores
@@ -82,7 +82,7 @@ curl -fsSL https://raw.githubusercontent.com/seu-usuario/webm-converter/main/uni
 ### Build manual:
 
 ```bash
-git clone https://github.com/seu-usuario/webm-converter.git
+git clone https://github.com/Muriel-Gasparini/webm-converter.git
 cd webm-converter
 yarn install
 yarn build:linux
