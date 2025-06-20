@@ -86,6 +86,12 @@ fi
 print_status "📦 Instalando dependências..."
 yarn install
 
+# Copiar ffmpeg para pasta bin local
+print_status "📦 Copiando ffmpeg..."
+mkdir -p bin
+cp node_modules/@ffmpeg-installer/linux-x64/ffmpeg bin/ffmpeg
+chmod +x bin/ffmpeg
+
 # Gerar build
 print_status "🔨 Compilando executável..."
 yarn build:linux
@@ -136,8 +142,8 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     print_status "🧹 Limpando arquivos desnecessários..."
     cd "$INSTALL_DIR"
     rm -rf node_modules .git yarn.lock
-    find . -name "*.js" -not -path "./dist/*" -delete
-    find . -name "*.json" -not -path "./dist/*" -delete
+    find . -name "*.js" -not -path "./dist/*" -not -path "./bin/*" -delete
+    find . -name "*.json" -not -path "./dist/*" -not -path "./bin/*" -delete
     print_success "Limpeza concluída!"
 fi
 
