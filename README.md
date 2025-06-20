@@ -10,13 +10,14 @@ curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/mas
 
 **Isso é tudo!** ✨ O script vai:
 
-- ✅ Verificar dependências (Node.js, Git)
-- ✅ Baixar e compilar o projeto
+- ✅ Instalar FFmpeg via apt (se não estiver presente)
+- ✅ Baixar binário pré-compilado da release v1.0.0
 - ✅ Instalar o executável em `~/.local/bin`
 - ✅ Configurar o PATH automaticamente
 - ✅ Criar pasta de vídeos `~/Videos/Screencasts`
 - ✅ Oferecer instalação como serviço systemd
-- ✅ Limpar arquivos desnecessários
+
+> 💡 **Para desinstalar:** `curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/master/uninstall.sh | bash`
 
 ## 🎯 Como funciona
 
@@ -28,8 +29,8 @@ curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/mas
 ## 📋 Pré-requisitos
 
 - **Linux** com systemd
-- **Node.js 18+** (o script ajuda a instalar)
-- **Git** (`sudo apt install git`)
+- **FFmpeg** (instalado automaticamente via apt)
+- **curl** ou **wget** (`sudo apt install curl`)
 
 ## 🎮 Uso
 
@@ -77,6 +78,13 @@ webm-converter
 curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/master/uninstall.sh | bash
 ```
 
+**Isso é tudo!** 🧹 O script vai:
+
+- ✅ Parar e remover o serviço systemd
+- ✅ Remover executável de `~/.local/bin`
+- ✅ Perguntar se quer remover FFmpeg do sistema
+- ✅ Opção para fazer limpeza de pacotes órfãos
+
 ## 🔧 Para Desenvolvedores
 
 ### Build manual:
@@ -98,15 +106,14 @@ sudo ./install-service.sh
 
 ```
 webm-converter/
-├── 📱 index.js              # Código principal
-├── 📦 package.json          # Dependências e scripts
+├── 📱 index.js              # Código principal (usa ffmpeg via spawn)
+├── 📦 package.json          # Configuração pkg + Node.js 18
 ├── 🔧 webm-converter.service # Template do serviço
-├── 🚀 install.sh            # Instalador automático
-├── 🗑️ uninstall.sh          # Desinstalador
+├── 🚀 install.sh            # Instalador automático (download release)
+├── 🗑️ uninstall.sh          # Desinstalador (pergunta sobre ffmpeg)
 ├── ⚙️ install-service.sh     # Instalador do serviço
 ├── ❌ uninstall-service.sh   # Desinstalador do serviço
-├── 📖 README-SERVICE.md     # Docs do serviço
-└── 📦 dist/                 # Executável compilado
+└── 📦 dist/                 # Executável compilado (~46MB)
 ```
 
 ## 🐛 Solução de Problemas
@@ -119,13 +126,19 @@ sudo journalctl -u webm-converter --since "1 hour ago"
 
 # Testar manualmente
 webm-converter
+
+# Verificar se ffmpeg está instalado
+ffmpeg -version
 ```
 
 ### FFmpeg não encontrado:
 
 ```bash
-# Definir caminho personalizado
-export FFMPEG_PATH="/caminho/para/ffmpeg"
+# Instalar FFmpeg
+sudo apt update && sudo apt install ffmpeg
+
+# Verificar instalação
+which ffmpeg
 ```
 
 ### Pasta não monitorada:
@@ -148,13 +161,20 @@ mkdir -p ~/Videos/Screencasts
 
 ## 📊 Características
 
-- 🚀 **Zero configuração** - Funciona imediatamente
+- 🚀 **Instalação rápida** - Download direto da release
 - 🔄 **Monitoramento automático** - Detecta fim da gravação
-- 📦 **FFmpeg bundled** - Não precisa instalar dependências
+- 🛠️ **FFmpeg nativo** - Usa FFmpeg do sistema (via apt)
 - 🎯 **Otimizado para ScreenCast** - Configurações ideais
 - 🔧 **Serviço systemd** - Inicia com o sistema
-- 📱 **Executável standalone** - Um arquivo de 110MB
-- 🧹 **Auto-limpeza** - Remove arquivos temporários
+- 📱 **Executável standalone** - ~46MB (sem dependências externas)
+- 🐧 **Linux específico** - Otimizado para distribuições Linux
+
+## 🆕 Arquitetura v1.0.0
+
+- **FFmpeg via apt**: Usa o FFmpeg instalado no sistema
+- **Sem dependências Node.js**: Executável self-contained
+- **Spawn nativo**: child_process.spawn para máxima performance
+- **Release binária**: Download direto, sem necessidade de compilação
 
 ## 📄 Licença
 

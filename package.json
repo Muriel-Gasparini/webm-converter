@@ -11,18 +11,12 @@
     "build:linux": "pkg . --targets node18-linux-x64 --output dist/webm-converter-linux"
   },
   "pkg": {
-    "assets": [
-      "bin/**/*"
-    ],
     "targets": [
       "node18-linux-x64"
     ]
   },
   "license": "MIT",
-  "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "fluent-ffmpeg": "^2.1.3"
-  },
+  "dependencies": {},
   "devDependencies": {
     "pkg": "^5.8.1"
   }

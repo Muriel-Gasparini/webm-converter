@@ -82,6 +82,31 @@ if [ -d "$HOME/Videos/Screencasts" ]; then
     fi
 fi
 
+# Perguntar se deve remover o FFmpeg
+if command -v ffmpeg &> /dev/null; then
+    echo ""
+    read -p "Deseja remover o FFmpeg do sistema? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_status "🗑️  Removendo FFmpeg..."
+        if sudo apt remove --purge -y ffmpeg; then
+            print_success "FFmpeg removido com sucesso!"
+            # Perguntar se quer fazer autoremove
+            echo ""
+            read -p "Deseja remover pacotes órfãos? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                print_status "🧹 Removendo pacotes órfãos..."
+                sudo apt autoremove -y
+            fi
+        else
+            print_warning "Falha ao remover FFmpeg."
+        fi
+    else
+        print_warning "FFmpeg mantido no sistema"
+    fi
+fi
+
 print_success "✅ Desinstalação concluída!"
 echo ""
 print_warning "📝 Nota: As entradas do PATH em ~/.bashrc, ~/.zshrc ou ~/.profile"
