@@ -1,93 +1,114 @@
-# WebM Converter 🎬
+# WebM Converter
 
-Conversor automático de arquivos .webm para .mp4 especialmente otimizado para gravações do Gnome ScreenCast.
+Automated WebM to MP4 conversion daemon optimized for Gnome ScreenCast recordings.
 
-## 🚀 Instalação com UM comando
+## Installation
+
+### Automated Installation
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/master/install.sh | bash
 ```
 
-**Isso é tudo!** ✨ O script vai:
+The installer performs the following operations:
+- Installs FFmpeg via apt package manager if not present
+- Downloads pre-compiled v1.0.0 binary release
+- Deploys executable to `~/.local/bin`
+- Configures PATH environment variable
+- Creates monitoring directory `~/Videos/Screencasts`
+- Optionally configures systemd service unit
 
-- ✅ Instalar FFmpeg via apt (se não estiver presente)
-- ✅ Baixar binário pré-compilado da release v1.0.0
-- ✅ Instalar o executável em `~/.local/bin`
-- ✅ Configurar o PATH automaticamente
-- ✅ Criar pasta de vídeos `~/Videos/Screencasts`
-- ✅ Oferecer instalação como serviço systemd
-
-> 💡 **Para desinstalar:** `curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/master/uninstall.sh | bash`
-
-## 🎯 Como funciona
-
-1. **Grave sua tela** usando o Gnome ScreenCast (Ctrl+Alt+Shift+R)
-2. **Arquivos .webm são detectados** automaticamente em `~/Videos/Screencasts`
-3. **Conversão automática** para .mp4 com configurações otimizadas
-4. **Zero intervenção** necessária!
-
-## 📋 Pré-requisitos
-
-- **Linux** com systemd
-- **FFmpeg** (instalado automaticamente via apt)
-- **curl** ou **wget** (`sudo apt install curl`)
-
-## 🎮 Uso
-
-### Como Executável
-
-```bash
-# Executar uma vez (monitoramento manual)
-webm-converter
-
-# Parar com Ctrl+C
-```
-
-### Como Serviço (Recomendado)
-
-```bash
-# Ver status
-sudo systemctl status webm-converter
-
-# Parar/Iniciar
-sudo systemctl stop webm-converter
-sudo systemctl start webm-converter
-
-# Ver logs em tempo real
-sudo journalctl -u webm-converter -f
-```
-
-## ⚙️ Configurações
-
-- **Pasta monitorada**: `~/Videos/Screencasts` (padrão do Gnome)
-- **Formato de saída**: MP4 (H.264 + AAC)
-- **Resolução**: Redimensionado para 1280px de largura
-- **Taxa de quadros**: 30 FPS
-- **Qualidade**: CRF 23 (boa qualidade/tamanho)
-
-### Personalizar pasta:
-
-```bash
-export WEBM_WATCH_DIR="/outra/pasta"
-webm-converter
-```
-
-## 🗑️ Desinstalação
+### Uninstallation
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Muriel-Gasparini/webm-converter/master/uninstall.sh | bash
 ```
 
-**Isso é tudo!** 🧹 O script vai:
+Removal operations:
+- Stops and removes systemd service unit
+- Removes binary from `~/.local/bin`
+- Optional FFmpeg removal
+- Optional orphaned package cleanup
 
-- ✅ Parar e remover o serviço systemd
-- ✅ Remover executável de `~/.local/bin`
-- ✅ Perguntar se quer remover FFmpeg do sistema
-- ✅ Opção para fazer limpeza de pacotes órfãos
+## Architecture
 
-## 🔧 Para Desenvolvedores
+### Core Components
 
-### Build manual:
+- **File System Monitor**: Detects WebM file creation events using `fs.watch`
+- **Recording Completion Detector**: Validates file stability via size monitoring and `lsof` process checking
+- **Transcoder**: Spawns FFmpeg child processes with H.264/AAC codec configuration
+- **Notification System**: Desktop notifications via `node-notifier`
+
+### Workflow
+
+1. Gnome ScreenCast recording initiated (Ctrl+Alt+Shift+R)
+2. File system watcher detects `.webm` creation in `~/Videos/Screencasts`
+3. Stability verification: file size monitoring (3s intervals) + `lsof` lock detection
+4. Transcoding triggered after 5s grace period
+5. Real-time progress tracking via FFmpeg stderr parsing
+6. Desktop notification on completion/failure
+
+## Technical Specifications
+
+### Video Encoding Parameters
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| Video Codec | libx264 | H.264 baseline compatibility |
+| Audio Codec | AAC | Universal playback support |
+| Profile | main | Balance between quality and compatibility |
+| Pixel Format | yuv420p | Maximum decoder compatibility |
+| CRF | 23 | Perceptually lossless compression |
+| Preset | veryfast | Real-time encoding optimization |
+| Scaling | 1280px width | Standardized HD resolution |
+| Frame Rate | 30 fps | Screen recording standard |
+
+### System Requirements
+
+- Linux distribution with systemd init system
+- FFmpeg (installed automatically via apt)
+- curl or wget for remote installation
+- Node.js runtime (bundled in standalone binary)
+
+## Usage
+
+### Standalone Execution
+
+```bash
+webm-converter
+```
+
+Initiates foreground monitoring process. Terminate with Ctrl+C.
+
+### Systemd Service Management
+
+```bash
+# Service status inspection
+systemctl status webm-converter
+
+# Service lifecycle control
+systemctl stop webm-converter
+systemctl start webm-converter
+systemctl restart webm-converter
+
+# Real-time log streaming
+journalctl -u webm-converter -f
+```
+
+## Configuration
+
+### Environment Variables
+
+```bash
+export WEBM_WATCH_DIR="/custom/path"
+webm-converter
+```
+
+Default monitoring directory: `~/Videos/Screencasts`
+
+### Encoding Customization
+
+Modify FFmpeg parameters in `index.js:129-152` and rebuild:
 
 ```bash
 git clone https://github.com/Muriel-Gasparini/webm-converter.git
@@ -96,90 +117,74 @@ yarn install
 yarn build:linux
 ```
 
-### Instalar serviço local:
+## Deployment
+
+### Local Service Installation
 
 ```bash
 sudo ./install-service.sh
 ```
 
-## 📁 Estrutura do Projeto
+Generates customized systemd unit file with user-specific paths and environment configuration.
+
+## Project Structure
 
 ```
 webm-converter/
-├── 📱 index.js              # Código principal (usa ffmpeg via spawn)
-├── 📦 package.json          # Configuração pkg + Node.js 18
-├── 🔧 webm-converter.service # Template do serviço
-├── 🚀 install.sh            # Instalador automático (download release)
-├── 🗑️ uninstall.sh          # Desinstalador (pergunta sobre ffmpeg)
-├── ⚙️ install-service.sh     # Instalador do serviço
-├── ❌ uninstall-service.sh   # Desinstalador do serviço
-└── 📦 dist/                 # Executável compilado (~46MB)
+├── index.js                    # Core application logic
+├── package.json                # Node.js dependencies and pkg configuration
+├── webm-converter.service      # Systemd unit template
+├── install.sh                  # Remote installation orchestrator
+├── uninstall.sh                # Removal and cleanup automation
+├── install-service.sh          # Local systemd service configurator
+├── uninstall-service.sh        # Service removal utility
+└── dist/                       # Compiled binary artifacts (~46MB)
 ```
 
-## 🐛 Solução de Problemas
+## Troubleshooting
 
-### WebM Converter não inicia:
+### Service Initialization Failure
 
 ```bash
-# Verificar logs
-sudo journalctl -u webm-converter --since "1 hour ago"
-
-# Testar manualmente
-webm-converter
-
-# Verificar se ffmpeg está instalado
-ffmpeg -version
+journalctl -u webm-converter --since "1 hour ago"
+webm-converter  # Manual execution for diagnostics
+ffmpeg -version  # Dependency verification
 ```
 
-### FFmpeg não encontrado:
+### FFmpeg Not Found
 
 ```bash
-# Instalar FFmpeg
 sudo apt update && sudo apt install ffmpeg
-
-# Verificar instalação
 which ffmpeg
 ```
 
-### Pasta não monitorada:
+### Directory Monitoring Issues
 
 ```bash
-# Verificar se a pasta existe
 ls -la ~/Videos/Screencasts
-
-# Criar se necessário
 mkdir -p ~/Videos/Screencasts
 ```
 
-## 🎬 Demo
+## Implementation Details
 
-1. Pressione `Ctrl+Alt+Shift+R` para iniciar gravação
-2. Grave sua tela normalmente
-3. Pressione `Ctrl+Alt+Shift+R` novamente para parar
-4. Aguarde alguns segundos
-5. ✨ Arquivo `.mp4` aparece automaticamente na mesma pasta!
+### v1.0.0 Architecture
 
-## 📊 Características
+- **FFmpeg Integration**: System-level FFmpeg via apt package manager
+- **Binary Distribution**: Self-contained executable via pkg bundler
+- **Process Spawning**: Native `child_process.spawn` for maximum performance
+- **Deployment**: Direct binary download from GitHub releases
 
-- 🚀 **Instalação rápida** - Download direto da release
-- 🔄 **Monitoramento automático** - Detecta fim da gravação
-- 🛠️ **FFmpeg nativo** - Usa FFmpeg do sistema (via apt)
-- 🎯 **Otimizado para ScreenCast** - Configurações ideais
-- 🔧 **Serviço systemd** - Inicia com o sistema
-- 📱 **Executável standalone** - ~46MB (sem dependências externas)
-- 🐧 **Linux específico** - Otimizado para distribuições Linux
+### Performance Characteristics
 
-## 🆕 Arquitetura v1.0.0
+- **File Detection Latency**: <100ms (fs.watch event-driven)
+- **Stability Verification**: 3s polling interval + 5s grace period
+- **Memory Footprint**: ~50MB resident (Node.js runtime + application)
+- **CPU Overhead**: Minimal (event-driven architecture, no polling except during verification)
 
-- **FFmpeg via apt**: Usa o FFmpeg instalado no sistema
-- **Sem dependências Node.js**: Executável self-contained
-- **Spawn nativo**: child_process.spawn para máxima performance
-- **Release binária**: Download direto, sem necessidade de compilação
+## License
 
-## 📄 Licença
+MIT License - See LICENSE file for complete terms.
 
-MIT License - Veja [LICENSE](LICENSE) para detalhes.
+## Repository
 
----
-
-**Criado para facilitar a vida de quem grava screencasts no Linux!** 🐧✨
+https://github.com/Muriel-Gasparini/webm-converter
