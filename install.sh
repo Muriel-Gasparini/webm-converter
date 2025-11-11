@@ -1,10 +1,7 @@
 #!/bin/bash
 
-# WebM Converter - Instalação Automática v1.0.0
-
 set -euo pipefail
 
-# Configurar locale para evitar problemas de encoding
 export LC_ALL=C.UTF-8 2>/dev/null || export LC_ALL=C 2>/dev/null || true
 
 REPO_URL="https://github.com/Muriel-Gasparini/webm-converter"
@@ -18,12 +15,11 @@ BIN_DIR="$HOME/.local/bin"
 SHARE_DIR="$HOME/.local/share/webm-converter"
 SERVICE_DIR="/tmp/webm-converter-install"
 
-# Cores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -41,50 +37,44 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Verificar se está rodando como root
 if [ "$EUID" -eq 0 ]; then
-    print_error "Não execute como root! Execute como usuário normal."
+    print_error "Do not run as root! Run as normal user."
     exit 1
 fi
 
-print_status "🚀 Iniciando instalação do WebM Converter $RELEASE_VERSION..."
+print_status "Starting WebM Converter $RELEASE_VERSION installation..."
 
-# Verificar dependências
-print_status "🔍 Verificando dependências..."
+print_status "Checking dependencies..."
 
-# Verificar curl ou wget
 if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
-    print_error "curl ou wget não encontrado!"
-    print_status "Instale curl: sudo apt install curl"
+    print_error "curl or wget not found!"
+    print_status "Install curl: sudo apt install curl"
     exit 1
 fi
 
-# Verificar/instalar FFmpeg
 if ! command -v ffmpeg &> /dev/null; then
-    print_status "📦 FFmpeg não encontrado. Instalando via apt..."
+    print_status "FFmpeg not found. Installing via apt..."
     if sudo apt update && sudo apt install -y ffmpeg; then
-        print_success "FFmpeg instalado com sucesso!"
+        print_success "FFmpeg installed successfully!"
     else
-        print_error "Falha ao instalar FFmpeg!"
+        print_error "Failed to install FFmpeg!"
         exit 1
     fi
 else
-    print_success "FFmpeg já está instalado"
+    print_success "FFmpeg is already installed"
     ffmpeg -version | head -1
 fi
 
-# Criar diretórios
-print_status "📁 Criando diretórios..."
+print_status "Creating directories..."
 mkdir -p "$BIN_DIR"
 mkdir -p "$SHARE_DIR"
 mkdir -p "$HOME/Videos/Screencasts"
 mkdir -p "$SERVICE_DIR"
 
-# Função para download
 download_file() {
     local url="$1"
     local output="$2"
-    
+
     if command -v curl &> /dev/null; then
         curl -fsSL "$url" -o "$output"
     else
@@ -92,28 +82,23 @@ download_file() {
     fi
 }
 
-# Baixar binário
-print_status "📥 Baixando WebM Converter $RELEASE_VERSION..."
+print_status "Downloading WebM Converter $RELEASE_VERSION..."
 if ! download_file "$BINARY_URL" "$BIN_DIR/webm-converter"; then
-    print_error "Falha ao baixar o executável!"
-    print_error "Verifique se a release $RELEASE_VERSION existe em: $REPO_URL/releases"
+    print_error "Failed to download executable!"
+    print_error "Check if release $RELEASE_VERSION exists at: $REPO_URL/releases"
     exit 1
 fi
 
-# Baixar ícone
-print_status "🖼️ Baixando ícone..."
+print_status "Downloading icon..."
 if ! download_file "$ICON_URL" "$SHARE_DIR/icon.png"; then
-    print_warning "Falha ao baixar o ícone. Notificações serão sem ícone."
+    print_warning "Failed to download icon. Notifications will be without icon."
 fi
 
-# Tornar executável
 chmod +x "$BIN_DIR/webm-converter"
 
-# Adicionar ao PATH se necessário
 if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    print_status "🔧 Adicionando ao PATH..."
-    
-    # Detectar shell e adicionar ao arquivo correto
+    print_status "Adding to PATH..."
+
     if [ -n "$ZSH_VERSION" ]; then
         SHELL_RC="$HOME/.zshrc"
     elif [ -n "$BASH_VERSION" ]; then
@@ -121,49 +106,41 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     else
         SHELL_RC="$HOME/.profile"
     fi
-    
-    # Verificar se a linha já existe no arquivo
+
     if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
-        print_success "PATH atualizado em $SHELL_RC"
-        print_warning "Reinicie o terminal ou execute: source $SHELL_RC"
+        print_success "PATH updated in $SHELL_RC"
+        print_warning "Restart terminal or run: source $SHELL_RC"
     fi
-    
+
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Verificar se está executando via pipe (stdin não é um terminal)
 if [ -t 0 ]; then
-    # Terminal interativo
     INTERACTIVE=true
 else
-    # Executando via pipe (curl | bash)
     INTERACTIVE=false
 fi
 
-# Instalar serviço systemd
 if [ "$INTERACTIVE" = true ]; then
     echo ""
-    read -p "Deseja instalar como serviço systemd? (y/N): " -n 1 -r
+    read -p "Do you want to install as systemd service? (y/N): " -n 1 -r
     echo ""
     INSTALL_SERVICE="$REPLY"
 else
-    # Modo não-interativo: instalar serviço por padrão
-    print_status "Modo não-interativo detectado. Instalando serviço systemd..."
+    print_status "Non-interactive mode detected. Installing systemd service..."
     INSTALL_SERVICE="y"
 fi
 
 if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
-    print_status "🔧 Baixando arquivos do serviço systemd..."
-    
-    # Baixar arquivos necessários para o serviço
+    print_status "Downloading systemd service files..."
+
     if download_file "$SERVICE_URL" "$SERVICE_DIR/webm-converter.service" && \
        download_file "$INSTALL_SERVICE_URL" "$SERVICE_DIR/install-service.sh"; then
-        
+
         cd "$SERVICE_DIR" || exit 1
         chmod +x install-service.sh
-        
-        # Detectar usuário atual de forma robusta
+
         if [ -n "${SUDO_USER:-}" ]; then
             TARGET_USER="$SUDO_USER"
         else
@@ -174,10 +151,9 @@ if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
         WORKING_DIR="$HOME_DIR"
         EXEC_PATH="$BIN_DIR/webm-converter"
         WATCH_DIR="$HOME_DIR/Videos/Screencasts"
-        
-        print_status "Configurando serviço para usuário: $TARGET_USER"
-        
-        # Substituir placeholders no arquivo de serviço
+
+        print_status "Configuring service for user: $TARGET_USER"
+
         sed -e "s|{{USER}}|$TARGET_USER|g" \
             -e "s|{{GROUP}}|$TARGET_GROUP|g" \
             -e "s|{{HOME_DIR}}|$HOME_DIR|g" \
@@ -185,50 +161,47 @@ if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
             -e "s|{{EXEC_PATH}}|$EXEC_PATH|g" \
             -e "s|{{WATCH_DIR}}|$WATCH_DIR|g" \
             webm-converter.service > webm-converter-configured.service
-        
-        # Verificar se todos os placeholders foram substituídos
+
         if grep -q "{{" webm-converter-configured.service; then
-            print_error "Erro: Alguns placeholders não foram substituídos no arquivo de serviço"
+            print_error "Error: Some placeholders were not replaced in service file"
             cat webm-converter-configured.service | grep "{{"
-            print_warning "Falha ao configurar serviço. Continue com a instalação manual."
+            print_warning "Failed to configure service. Continue with manual installation."
         else
-            print_status "🔧 Instalando serviço systemd..."
+            print_status "Installing systemd service..."
             if sudo cp webm-converter-configured.service /etc/systemd/system/webm-converter.service && \
                sudo systemctl daemon-reload && \
                sudo systemctl enable webm-converter && \
                sudo systemctl start webm-converter; then
-                print_success "Serviço instalado e iniciado!"
+                print_success "Service installed and started!"
             else
-                print_warning "Falha ao instalar serviço. Continue com a instalação manual."
+                print_warning "Failed to install service. Continue with manual installation."
             fi
         fi
     else
-        print_warning "Falha ao baixar arquivos do serviço."
+        print_warning "Failed to download service files."
     fi
 fi
 
-# Limpeza
 rm -rf "$SERVICE_DIR"
 
-# Verificação final
 if [ -x "$BIN_DIR/webm-converter" ]; then
-    print_success "✅ Instalação concluída com sucesso!"
+    print_success "Installation completed successfully!"
 else
-    print_error "❌ Erro na instalação: executável não encontrado"
+    print_error "Installation error: executable not found"
     exit 1
 fi
 
 printf "\n"
-printf "📋 Como usar:\n"
-printf "  🔴 Executar uma vez:     webm-converter\n"
-printf "  🔴 Ver status serviço:   sudo systemctl status webm-converter\n"
-printf "  🔴 Ver logs:             sudo journalctl -u webm-converter -f\n"
-printf "  🔴 Parar serviço:        sudo systemctl stop webm-converter\n"
-printf "  🔴 Iniciar serviço:      sudo systemctl start webm-converter\n"
+printf "Usage:\n"
+printf "  Run once:           webm-converter\n"
+printf "  Service status:     sudo systemctl status webm-converter\n"
+printf "  View logs:          sudo journalctl -u webm-converter -f\n"
+printf "  Stop service:       sudo systemctl stop webm-converter\n"
+printf "  Start service:      sudo systemctl start webm-converter\n"
 printf "\n"
-printf "📁 Pasta monitorada: %s\n" "$HOME/Videos/Screencasts"
-printf "📦 Executável: %s\n" "$BIN_DIR/webm-converter"
-printf "📦 Versão: %s\n" "$RELEASE_VERSION"
+printf "Monitored directory: %s\n" "$HOME/Videos/Screencasts"
+printf "Executable: %s\n" "$BIN_DIR/webm-converter"
+printf "Version: %s\n" "$RELEASE_VERSION"
 printf "\n"
-printf "🎬 Agora grave sua tela com Gnome ScreenCast e os arquivos .webm\n"
-printf "   serão automaticamente convertidos para .mp4!\n" 
+printf "Now record your screen with Gnome ScreenCast and .webm files\n"
+printf "will be automatically converted to .mp4!\n" 

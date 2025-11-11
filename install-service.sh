@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Script para instalar o WebM Converter como serviço systemd
-# Execute com: sudo ./install-service.sh [usuario]
-
 set -e
 
 SERVICE_NAME="webm-converter"
@@ -10,80 +7,70 @@ SERVICE_FILE="webm-converter.service"
 SYSTEMD_DIR="/etc/systemd/system"
 CURRENT_DIR="$(pwd)"
 
-echo "🚀 Instalando WebM Converter como serviço systemd..."
+echo "Installing WebM Converter as systemd service..."
 
-# Verificar se está executando como root
 if [ "$EUID" -ne 0 ]; then
-    echo "❌ Este script deve ser executado como root (use sudo)"
+    echo "This script must be run as root (use sudo)"
     exit 1
 fi
 
-# Detectar usuário atual (quem executou sudo)
 if [ -n "$1" ]; then
     TARGET_USER="$1"
 else
     TARGET_USER="${SUDO_USER:-$(logname 2>/dev/null || echo $USER)}"
 fi
 
-# Detectar informações do usuário
 TARGET_GROUP="$(id -gn $TARGET_USER 2>/dev/null || echo $TARGET_USER)"
 HOME_DIR="$(eval echo ~$TARGET_USER)"
 WORKING_DIR="$CURRENT_DIR"
 EXEC_PATH="$CURRENT_DIR/dist/webm-converter-linux"
 WATCH_DIR="$HOME_DIR/Videos/Screencasts"
 
-echo "📋 Configurações detectadas:"
-echo "  Usuário: $TARGET_USER"
-echo "  Grupo: $TARGET_GROUP"
+echo "Detected configuration:"
+echo "  User: $TARGET_USER"
+echo "  Group: $TARGET_GROUP"
 echo "  Home: $HOME_DIR"
-echo "  Diretório de trabalho: $WORKING_DIR"
-echo "  Executável: $EXEC_PATH"
-echo "  Pasta monitorada: $WATCH_DIR"
+echo "  Working directory: $WORKING_DIR"
+echo "  Executable: $EXEC_PATH"
+echo "  Monitored directory: $WATCH_DIR"
 echo ""
 
-# Verificar se o executável existe
 if [ ! -f "dist/webm-converter-linux" ]; then
-    echo "❌ Executável não encontrado em dist/webm-converter-linux"
-    echo "Execute 'yarn build:linux' primeiro"
+    echo "Executable not found at dist/webm-converter-linux"
+    echo "Run 'yarn build:linux' first"
     exit 1
 fi
 
-# Verificar se o ícone existe
 if [ ! -f "dist/icon.png" ]; then
-    echo "⚠️ Ícone não encontrado em dist/icon.png"
-    echo "Execute 'yarn build:linux' primeiro para incluir o ícone"
+    echo "Icon not found at dist/icon.png"
+    echo "Run 'yarn build:linux' first to include the icon"
 fi
 
-# Verificar se o arquivo de serviço existe
 if [ ! -f "$SERVICE_FILE" ]; then
-    echo "❌ Arquivo de serviço não encontrado: $SERVICE_FILE"
+    echo "Service file not found: $SERVICE_FILE"
     exit 1
 fi
 
-# Criar pasta de vídeos se não existir
-echo "📁 Verificando/criando pasta de vídeos..."
+echo "Checking/creating videos directory..."
 if [ ! -d "$WATCH_DIR" ]; then
     sudo -u "$TARGET_USER" mkdir -p "$WATCH_DIR"
-    echo "✅ Pasta criada: $WATCH_DIR"
+    echo "Directory created: $WATCH_DIR"
 else
-    echo "✅ Pasta já existe: $WATCH_DIR"
+    echo "Directory already exists: $WATCH_DIR"
 fi
 
-# Copiar ícone para local compartilhado se existir
 SHARE_DIR="$HOME_DIR/.local/share/webm-converter"
 if [ -f "dist/icon.png" ]; then
-    echo "🖼️ Copiando ícone para $SHARE_DIR..."
+    echo "Copying icon to $SHARE_DIR..."
     sudo -u "$TARGET_USER" mkdir -p "$SHARE_DIR"
     sudo -u "$TARGET_USER" cp "dist/icon.png" "$SHARE_DIR/"
-    echo "✅ Ícone copiado para $SHARE_DIR/icon.png"
+    echo "Icon copied to $SHARE_DIR/icon.png"
 fi
 
-# Parar o serviço se estiver rodando
-echo "⏹️  Parando serviço se estiver rodando..."
+echo "Stopping service if running..."
 systemctl stop $SERVICE_NAME 2>/dev/null || true
 
-# Gerar arquivo de serviço personalizado
-echo "🔧 Gerando arquivo de serviço personalizado..."
+echo "Generating customized service file..."
 sed -e "s|{{USER}}|$TARGET_USER|g" \
     -e "s|{{GROUP}}|$TARGET_GROUP|g" \
     -e "s|{{HOME_DIR}}|$HOME_DIR|g" \
@@ -92,34 +79,30 @@ sed -e "s|{{USER}}|$TARGET_USER|g" \
     -e "s|{{WATCH_DIR}}|$WATCH_DIR|g" \
     "$SERVICE_FILE" > "$SYSTEMD_DIR/$SERVICE_FILE"
 
-echo "✅ Arquivo de serviço gerado em $SYSTEMD_DIR/$SERVICE_FILE"
+echo "Service file generated at $SYSTEMD_DIR/$SERVICE_FILE"
 
-# Recarregar systemd
-echo "🔄 Recarregando systemd daemon..."
+echo "Reloading systemd daemon..."
 systemctl daemon-reload
 
-# Habilitar serviço para iniciar automaticamente
-echo "✅ Habilitando serviço para iniciar automaticamente..."
+echo "Enabling service to start automatically..."
 systemctl enable $SERVICE_NAME
 
-# Iniciar serviço
-echo "🚀 Iniciando serviço..."
+echo "Starting service..."
 systemctl start $SERVICE_NAME
 
-# Verificar status
-echo "📊 Status do serviço:"
+echo "Service status:"
 systemctl status $SERVICE_NAME --no-pager
 
 echo ""
-echo "✅ Instalação concluída!"
+echo "Installation completed!"
 echo ""
-echo "📋 Comandos úteis:"
-echo "  Verificar status:    sudo systemctl status $SERVICE_NAME"
-echo "  Iniciar serviço:     sudo systemctl start $SERVICE_NAME"
-echo "  Parar serviço:       sudo systemctl stop $SERVICE_NAME"
-echo "  Reiniciar serviço:   sudo systemctl restart $SERVICE_NAME"
-echo "  Ver logs:            sudo journalctl -u $SERVICE_NAME -f"
-echo "  Desabilitar:         sudo systemctl disable $SERVICE_NAME"
+echo "Useful commands:"
+echo "  Check status:        sudo systemctl status $SERVICE_NAME"
+echo "  Start service:       sudo systemctl start $SERVICE_NAME"
+echo "  Stop service:        sudo systemctl stop $SERVICE_NAME"
+echo "  Restart service:     sudo systemctl restart $SERVICE_NAME"
+echo "  View logs:           sudo journalctl -u $SERVICE_NAME -f"
+echo "  Disable:             sudo systemctl disable $SERVICE_NAME"
 echo ""
-echo "🔍 Para ver os logs em tempo real:"
+echo "To view logs in real-time:"
 echo "  sudo journalctl -u $SERVICE_NAME -f" 
